@@ -13,8 +13,12 @@ function(protobuf_configure_target target)
 
     target_compile_features("${target}" PUBLIC cxx_std_17)
     if (MSVC)
-        # Build with multiple processes
-        target_compile_options("${target}" PRIVATE /MP)
+        # Build with multiple processes. /MP is MSBuild's per-invocation
+        # parallelism: other generators already compile one file per
+        # invocation, and clang-cl warns that the flag is unused.
+        if (CMAKE_GENERATOR MATCHES "Visual Studio")
+            target_compile_options("${target}" PRIVATE /MP)
+        endif ()
         # Set source file and execution character sets to UTF-8
         target_compile_options("${target}" PRIVATE /utf-8)
         # MSVC warning suppressions

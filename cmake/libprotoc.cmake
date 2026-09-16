@@ -3,6 +3,17 @@
 include(${protobuf_SOURCE_DIR}/src/file_lists.cmake)
 include(${protobuf_SOURCE_DIR}/cmake/protobuf-configure-target.cmake)
 
+# The C++ generator shares nothing with the other language generators
+# beyond the compiler core (parser, importer, CLI, plugin protocol), so a
+# C++-only build can drop every other generator directory wholesale,
+# along with the upb generator that only the Rust and upb outputs use.
+if(protobuf_PROTOC_CPP_ONLY)
+  set(protobuf_PROTOC_CPP_ONLY_EXCLUDE
+    "compiler/(csharp|java|kotlin|objectivec|php|python|ruby|rust)/|/upb_generator/")
+  list(FILTER libprotoc_srcs EXCLUDE REGEX "${protobuf_PROTOC_CPP_ONLY_EXCLUDE}")
+  list(FILTER libprotoc_hdrs EXCLUDE REGEX "${protobuf_PROTOC_CPP_ONLY_EXCLUDE}")
+endif()
+
 add_library(libprotoc ${protobuf_SHARED_OR_STATIC}
   ${libprotoc_srcs}
   ${libprotoc_hdrs}
@@ -17,7 +28,11 @@ if(protobuf_HAVE_LD_VERSION_SCRIPT)
     LINK_DEPENDS ${protobuf_SOURCE_DIR}/src/libprotoc.map)
 endif()
 target_link_libraries(libprotoc PRIVATE libprotobuf)
-target_link_libraries(libprotoc PUBLIC libupb ${protobuf_ABSL_USED_TARGETS})
+if(protobuf_PROTOC_CPP_ONLY)
+  target_link_libraries(libprotoc PUBLIC ${protobuf_ABSL_USED_TARGETS})
+else()
+  target_link_libraries(libprotoc PUBLIC libupb ${protobuf_ABSL_USED_TARGETS})
+endif()
 protobuf_configure_target(libprotoc)
 if(protobuf_BUILD_SHARED_LIBS)
   target_compile_definitions(libprotoc

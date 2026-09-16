@@ -726,8 +726,28 @@ Error, UINTPTR_MAX is undefined
         : "X"(UPB_PRIVATE(name)));                                          \
     __VA_ARGS__                                                             \
   }
-#elif defined(__ELF__) || defined(__wasm__) || defined(__MACH__) || \
-    defined(__MINGW32__)
+#elif defined(__MINGW32__)
+/*
+ * PE-COFF has no true weak symbols: GNU as implements a weak definition as
+ * a weak external plus a ".weak.<name>.<default>" alternate at the real
+ * address, and it emits any same-TU reference to that symbol as a
+ * relocation against the weak external with the alternate's section
+ * offset subtracted. Once the linker resolves the weak external to
+ * another TU's copy, the reference lands that many bytes before it -- so
+ * the .ctors entry of a weak constructor points into whatever precedes
+ * the surviving body, and __do_global_ctors calls it. Use the MSVC
+ * shape instead: a per-TU static body and a selectany (COMDAT) pointer
+ * in the CRT's C-initializer table, which mingw-w64's startup walks with
+ * _initterm. The linker keeps one pointer, so exactly one body runs, and
+ * the relocation is section-relative.
+ */
+#define UPB_CONSTRUCTOR(name, unique_name, ...)                      \
+  _UPB_CONSTRUCTOR_PLACEHOLDER(unique_name)                          \
+  static void UPB_PRIVATE(name)(void);                               \
+  __attribute__((section(".CRT$XCU"), selectany, used)) void (       \
+      *UPB_PRIVATE(name##_))(void) = UPB_PRIVATE(name);              \
+  static void UPB_PRIVATE(name)(void) { __VA_ARGS__ }
+#elif defined(__ELF__) || defined(__wasm__) || defined(__MACH__)
 #define UPB_CONSTRUCTOR(name, unique_name, ...)                              \
   _UPB_CONSTRUCTOR_PLACEHOLDER(unique_name)                                  \
   __attribute__((weak, visibility("hidden"), constructor)) void UPB_PRIVATE( \

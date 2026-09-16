@@ -37,6 +37,7 @@ option(protobuf_BUILD_PROTOC_BINARIES "Build libprotoc and protoc compiler" ON)
 option(protobuf_BUILD_LIBPROTOBUF "Build libprotobuf" ON)
 option(protobuf_BUILD_LIBPROTOC "Build libprotoc" OFF)
 option(protobuf_BUILD_LIBUPB "Build libupb" ON)
+option(protobuf_PROTOC_CPP_ONLY "Build libprotoc and protoc with only the C++ code generator" OFF)
 option(protobuf_DISABLE_RTTI "Remove runtime type information in the binaries" OFF)
 option(protobuf_TEST_XML_OUTDIR "Output directory for XML logs from tests." "")
 option(protobuf_ALLOW_CCACHE "Adjust build flags to allow for ccache support." OFF)
@@ -129,9 +130,15 @@ if (protobuf_BUILD_PROTOBUF_BINARIES AND NOT protobuf_BUILD_LIBPROTOBUF AND prot
     "protobuf_BUILD_LIBPROTOBUF=OFF requires protobuf_BUILD_LIBPROTOC=OFF.")
 endif()
 
-if(protobuf_BUILD_LIBPROTOC AND NOT protobuf_BUILD_LIBUPB)
+# Only the upb and Rust generators pull libupb into libprotoc; a C++-only
+# protoc has no use for it.
+if(protobuf_BUILD_LIBPROTOC AND NOT protobuf_BUILD_LIBUPB AND NOT protobuf_PROTOC_CPP_ONLY)
   message(WARNING "Building protoc binaries requires building libupb. As such, protobuf_BUILD_LIBUPB is being forced to ON.")
   set(protobuf_BUILD_LIBUPB ON)
+endif()
+if(protobuf_PROTOC_CPP_ONLY AND (protobuf_BUILD_TESTS OR protobuf_BUILD_CONFORMANCE))
+  message(FATAL_ERROR
+    "protobuf_PROTOC_CPP_ONLY=ON requires protobuf_BUILD_TESTS=OFF and protobuf_BUILD_CONFORMANCE=OFF.")
 endif()
 
 # Parse version tweaks

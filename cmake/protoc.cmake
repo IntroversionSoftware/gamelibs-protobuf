@@ -3,6 +3,9 @@ set(protoc_files
 )
 
 add_executable(protoc ${protoc_files} ${protobuf_version_rc_file})
+if(protobuf_PROTOC_CPP_ONLY)
+  target_compile_definitions(protoc PRIVATE PROTOC_CPP_ONLY)
+endif()
 target_link_libraries(protoc
   libprotoc
   libprotobuf

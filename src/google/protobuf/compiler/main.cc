@@ -8,6 +8,10 @@
 #include "absl/log/initialize.h"
 #include "google/protobuf/compiler/command_line_interface.h"
 #include "google/protobuf/compiler/cpp/generator.h"
+// PROTOC_CPP_ONLY (protobuf_PROTOC_CPP_ONLY in CMake) builds a protoc that
+// knows only the C++ generator; libprotoc then omits the other generators
+// entirely, so nothing below may reference them.
+#ifndef PROTOC_CPP_ONLY
 #include "google/protobuf/compiler/csharp/csharp_generator.h"
 #include "google/protobuf/compiler/java/generator.h"
 #include "google/protobuf/compiler/kotlin/generator.h"
@@ -18,6 +22,7 @@
 #include "google/protobuf/compiler/ruby/rbs_generator.h"
 #include "google/protobuf/compiler/ruby/ruby_generator.h"
 #include "google/protobuf/compiler/rust/generator.h"
+#endif  // PROTOC_CPP_ONLY
 #ifdef GOOGLE_PROTOBUF_RUNTIME_INCLUDE_BASE
 #include "google/protobuf/compiler/code_generator_lite.h"
 #endif
@@ -61,6 +66,7 @@ int ProtobufMain(int argc, char* argv[]) {
   cpp_generator.set_runtime_include_base(GOOGLE_PROTOBUF_RUNTIME_INCLUDE_BASE);
 #endif
 
+#ifndef PROTOC_CPP_ONLY
   // Proto2 Java
   java::JavaGenerator java_generator;
   cli.RegisterGenerator("--java_out", "--java_opt", &java_generator,
@@ -114,6 +120,7 @@ int ProtobufMain(int argc, char* argv[]) {
   rust::RustGenerator rust_generator;
   cli.RegisterGenerator("--rust_out", "--rust_opt", &rust_generator,
                         "Generate Rust sources.");
+#endif  // PROTOC_CPP_ONLY
 #ifdef DISABLE_PROTOC_CONFIG
   auto cleanup = internal::DisableAllowlistInternalOnly();
 #endif  // DISABLE_PROTOC_CONFIG
